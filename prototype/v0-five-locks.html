@@ -1,0 +1,1348 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>五重機關盒</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground: #0f0c0a;
+    --panel: rgba(26, 20, 16, 0.84);
+    --panel-solid: #1c1612;
+    --ink: #efe5d3;
+    --muted: #a8988a;
+    --brass: #d2aa55;
+    --brass-deep: #8a6a2c;
+    --patina: #74a898;
+    --line: rgba(239, 229, 211, 0.14);
+    --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+    --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --gutter: 16px;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app { position: relative; height: 100%; overflow: hidden; }
+  #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+
+  .hud { position: absolute; pointer-events: none; z-index: 2; }
+  .hud > * { pointer-events: auto; }
+
+  .hud-top { top: var(--gutter); left: var(--gutter); right: var(--gutter); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; pointer-events: none; }
+  .plaque { pointer-events: auto; }
+  .plaque h1 {
+    margin: 0; font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: 0.12em;
+    color: var(--brass); text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+  }
+  .plaque p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; letter-spacing: 0.04em; }
+  .meta { display: flex; gap: 8px; font-family: var(--mono); font-size: 13px; pointer-events: auto; }
+  .meta span { background: var(--panel); border: 1px solid var(--line); padding: 5px 10px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+
+  .locks {
+    top: 92px; left: var(--gutter); margin: 0; padding: 10px 12px; list-style: none;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    display: grid; gap: 7px; min-width: 188px;
+  }
+  .locks .cap { font-size: 11px; letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; padding-bottom: 2px; border-bottom: 1px solid var(--line); }
+  .lock { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; font-size: 13px; }
+  .lock i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--muted); }
+  .lock small { color: var(--muted); font-size: 11.5px; }
+  .lock.done i { background: var(--patina); border-color: var(--patina); box-shadow: 0 0 8px rgba(116,168,152,0.7); }
+  .lock.done span { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(168,152,138,0.5); }
+
+  .views { right: var(--gutter); top: 50%; transform: translateY(-50%); display: grid; gap: 6px; }
+  .btn {
+    font: 500 13px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--brass-deep); }
+  .btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .views .btn { width: 44px; height: 40px; padding: 0; font-family: var(--serif); font-size: 15px; }
+  .views .btn[aria-pressed="true"] { color: var(--brass); border-color: var(--brass-deep); }
+
+  .bottom { left: var(--gutter); right: var(--gutter); bottom: calc(var(--gutter) + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; pointer-events: none; }
+  .bottom > * { pointer-events: auto; }
+  .tray { display: flex; gap: 8px; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .slot {
+    width: 58px; height: 58px; border-radius: 9px; border: 1px dashed rgba(239,229,211,0.18); background: rgba(0,0,0,0.25);
+    display: grid; place-items: center; cursor: pointer; position: relative; padding: 0; color: var(--ink);
+  }
+  .slot svg { width: 36px; height: 36px; }
+  .slot[data-item] { border-style: solid; border-color: var(--line); }
+  .slot[aria-pressed="true"] { border-color: var(--brass); box-shadow: 0 0 0 2px rgba(210,170,85,0.35), inset 0 0 14px rgba(210,170,85,0.25); }
+  .slot:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .actions { display: flex; gap: 8px; }
+
+  .toast {
+    position: absolute; left: 50%; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(8px);
+    background: var(--panel-solid); border: 1px solid var(--brass-deep); color: var(--ink); padding: 9px 16px; border-radius: 8px;
+    font-size: 14px; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 3; max-width: calc(100% - 32px); text-align: center; text-wrap: balance;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  [hidden] { display: none !important; }
+  .card-layer { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8,6,5,0.55); z-index: 4; padding: 16px; }
+  .card {
+    background: var(--panel-solid); border: 1px solid var(--brass-deep); border-radius: 14px; padding: 22px 24px; max-width: 380px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .card h2 { margin: 0 0 6px; font-family: var(--serif); font-weight: 900; font-size: 22px; color: var(--brass); letter-spacing: 0.08em; text-wrap: balance; }
+  .card p { margin: 0 0 14px; line-height: 1.7; color: var(--ink); }
+  .card .note { color: var(--muted); font-size: 12.5px; }
+  .card .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .btn.primary { background: var(--brass); color: #1a130b; border-color: var(--brass); font-weight: 700; }
+  .btn.primary:hover { background: #e0bb68; }
+  .stats { display: flex; gap: 18px; font-family: var(--mono); margin: 4px 0 16px; }
+  .stats b { display: block; font-size: 22px; color: var(--ink); font-weight: 500; }
+  .stats span { font-size: 11px; color: var(--muted); letter-spacing: .12em; }
+
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 5; background: var(--ground); color: var(--muted); font-family: var(--serif); letter-spacing: 0.2em; transition: opacity .6s; }
+  .loading.gone { opacity: 0; pointer-events: none; }
+
+  @media (max-width: 640px) {
+    .plaque h1 { font-size: 21px; }
+    .plaque p { display: none; }
+    .locks { top: 64px; min-width: 0; padding: 7px 10px; grid-auto-flow: column; gap: 10px; }
+    .locks .cap, .lock span, .lock small { display: none; }
+    .lock { grid-template-columns: 12px; }
+    .views { top: auto; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); transform: none; grid-auto-flow: row; }
+    .views .btn { width: 40px; height: 36px; }
+    .slot { width: 50px; height: 50px; }
+    .slot svg { width: 30px; height: 30px; }
+    .toast { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+    .actions { flex-direction: column; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast, .btn, .loading { transition: none; }
+  }
+</style>
+
+<div id="app">
+  <canvas id="scene" aria-label="可旋轉的 3D 機關盒，點擊或拖曳零件操作"></canvas>
+
+  <div class="hud hud-top">
+    <div class="plaque">
+      <h1>五重機關盒</h1>
+      <p>拖曳旋轉盒子 · 點擊或拖動零件 · 五道鎖全開即破解</p>
+    </div>
+    <div class="meta"><span id="timer">00:00</span><span id="moves">0 步</span></div>
+  </div>
+
+  <ul class="hud locks" id="locks">
+    <li class="cap">機關</li>
+    <li class="lock" data-lock="slats"><i></i><span>寄木滑板</span><small>左側</small></li>
+    <li class="lock" data-lock="rings"><i></i><span>連環轉盤</span><small>右側</small></li>
+    <li class="lock" data-lock="gears"><i></i><span>齒輪齒條</span><small>頂蓋</small></li>
+    <li class="lock" data-lock="dials"><i></i><span>密碼滾筒</span><small>正面</small></li>
+    <li class="lock" data-lock="key"><i></i><span>黃銅鎖孔</span><small>背面</small></li>
+  </ul>
+
+  <nav class="hud views" aria-label="切換視角">
+    <button class="btn" data-view="front" aria-pressed="true" title="正面">前</button>
+    <button class="btn" data-view="left" title="左側">左</button>
+    <button class="btn" data-view="right" title="右側">右</button>
+    <button class="btn" data-view="back" title="背面">後</button>
+    <button class="btn" data-view="top" title="頂蓋">上</button>
+  </nav>
+
+  <div class="hud bottom">
+      <div class="tray" id="tray" aria-label="道具欄">
+        <button class="slot" id="slot-0" aria-pressed="false" aria-label="空道具格"></button>
+        <button class="slot" id="slot-1" aria-pressed="false" aria-label="空道具格"></button>
+        <button class="slot" id="slot-2" aria-pressed="false" aria-label="空道具格"></button>
+      </div>
+    <div class="actions">
+      <button class="btn" id="btn-sound" aria-pressed="true">音效 開</button>
+      <button class="btn" id="btn-hint">提示</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="card-layer" id="intro">
+    <div class="card">
+      <h2>五重機關盒</h2>
+      <p>一只胡桃木盒，五道互相牽連的機關：滑板、轉盤、齒輪、密碼、鑰匙。找到零件、裝上、轉動，打開頂蓋。</p>
+      <p class="note">拖曳空白處旋轉視角，滾輪或雙指縮放。零件可點擊；木板與曲柄也能直接拖動。道具先點選，再點要用的位置。</p>
+      <div class="row"><button class="btn primary" id="btn-start">開始解謎</button></div>
+    </div>
+  </div>
+
+  <div class="card-layer" id="hint-layer" hidden>
+    <div class="card">
+      <h2 id="hint-title">提示</h2>
+      <p id="hint-body"></p>
+      <div class="row"><button class="btn" id="hint-more">再多一點</button><button class="btn primary" id="hint-close">繼續</button></div>
+    </div>
+  </div>
+
+  <div class="card-layer" id="win-layer" hidden>
+    <div class="card">
+      <h2>機關已破</h2>
+      <p>頂蓋掀起，盒底的水晶亮了起來。</p>
+      <div class="stats"><div><b id="win-time">00:00</b><span>用時</span></div><div><b id="win-moves">0</b><span>操作</span></div><div><b id="win-hints">0</b><span>提示</span></div></div>
+      <div class="row"><button class="btn" id="win-close">看看盒子</button><button class="btn primary" id="win-again">再玩一次</button></div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">載入機關中…</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ───────── 渲染器與場景 ───────── */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f0c0a);
+scene.fog = new THREE.Fog(0x0f0c0a, 16, 34);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+const TARGET = new THREE.Vector3(0, 1.35, 0);
+camera.position.set(4.2, 5.2, 9.2);
+
+/* ───────── 程序化材質 ───────── */
+function rand(seed) {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+function woodTexture(base, grain, seed, rings = 150) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const g = c.getContext('2d');
+  const r = rand(seed);
+  g.fillStyle = base; g.fillRect(0, 0, c.width, c.height);
+  for (let i = 0; i < rings; i++) {
+    const y0 = r() * c.height, a1 = 4 + r() * 14, f1 = 0.002 + r() * 0.006, ph = r() * 6.28;
+    g.strokeStyle = grain; g.globalAlpha = 0.05 + r() * 0.22; g.lineWidth = 0.6 + r() * 2.6;
+    g.beginPath();
+    for (let x = 0; x <= c.width; x += 8) {
+      const y = y0 + Math.sin(x * f1 + ph) * a1 + Math.sin(x * 0.021 + i) * 1.4;
+      x === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  g.globalAlpha = 0.06;
+  for (let i = 0; i < 2200; i++) {
+    g.fillStyle = r() > 0.5 ? '#000' : '#fff';
+    g.fillRect(r() * c.width, r() * c.height, 1 + r() * 7, 1);
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+
+function canvasTexture(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  // 字型載入後重繪，避免刻字用到後備字型
+  t.userData.redraw = () => { draw(c.getContext('2d'), w, h); t.needsUpdate = true; };
+  return t;
+}
+
+function brassFill(g, w, h) {
+  const grad = g.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#caa257'); grad.addColorStop(0.5, '#e2c27a'); grad.addColorStop(1, '#a8823c');
+  g.fillStyle = grad; g.fillRect(0, 0, w, h);
+  g.globalAlpha = 0.08; g.fillStyle = '#3a2a10';
+  for (let i = 0; i < 400; i++) g.fillRect(Math.random() * w, Math.random() * h, Math.random() * 40, 1);
+  g.globalAlpha = 1;
+}
+
+const TEX = {
+  walnut: woodTexture('#4a2e1c', '#1c0f07', 11),
+  maple: woodTexture('#b88a58', '#6b4424', 23, 120),
+  wenge: woodTexture('#2c1d15', '#0c0604', 37),
+  cherry: woodTexture('#8a4a2c', '#3a1a0c', 51),
+  table: woodTexture('#231811', '#0a0604', 71, 220),
+};
+TEX.table.repeat.set(6, 6);
+
+const MAT = {
+  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, roughness: 0.58, envMapIntensity: 0.35 }),
+  maple: new THREE.MeshStandardMaterial({ map: TEX.maple, roughness: 0.52, envMapIntensity: 0.35 }),
+  wenge: new THREE.MeshStandardMaterial({ map: TEX.wenge, roughness: 0.6, envMapIntensity: 0.3 }),
+  cherry: new THREE.MeshStandardMaterial({ map: TEX.cherry, roughness: 0.55, envMapIntensity: 0.35 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xc9a04a, metalness: 1, roughness: 0.3, envMapIntensity: 1.1 }),
+  brassDark: new THREE.MeshStandardMaterial({ color: 0x7d5c28, metalness: 1, roughness: 0.48, envMapIntensity: 0.9 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x9aa3a8, metalness: 1, roughness: 0.35, envMapIntensity: 1 }),
+  velvet: new THREE.MeshStandardMaterial({ color: 0x4a0d1a, roughness: 1, envMapIntensity: 0.2 }),
+  void: new THREE.MeshStandardMaterial({ color: 0x050302, roughness: 1, envMapIntensity: 0 }),
+  table: new THREE.MeshStandardMaterial({ map: TEX.table, roughness: 0.7, envMapIntensity: 0.25 }),
+};
+
+/* ───────── 幾何工具 ───────── */
+// BoxGeometry 每面 UV 依實際尺寸縮放，讓木紋密度一致
+function woodBox(w, h, d, offset = 0) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const uv = geo.attributes.uv;
+  const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) {
+    for (let k = 0; k < 4; k++) {
+      const i = f * 4 + k;
+      uv.setXY(i, uv.getX(i) * dims[f][0] / 2.4 + offset, uv.getY(i) * dims[f][1] / 2.4 + offset * 0.37);
+    }
+  }
+  return geo;
+}
+
+function add(parent, geo, mat, pos = [0, 0, 0], rot = [0, 0, 0]) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...pos);
+  m.rotation.set(...rot);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+function group(parent, pos = [0, 0, 0], rot = [0, 0, 0]) {
+  const g = new THREE.Group();
+  g.position.set(...pos);
+  g.rotation.set(...rot);
+  parent.add(g);
+  return g;
+}
+
+/* ───────── 盒身尺寸 ───────── */
+const W = 4, H = 2.4, D = 3, T = 0.14, FLOOR = 1.6;
+const box = group(scene);
+
+// 下半部實心（藏抽屜與暗格），上半部為四面牆圍出的內膛
+add(box, woodBox(W, FLOOR, D), MAT.walnut, [0, FLOOR / 2, 0]);
+add(box, woodBox(W, H - FLOOR, T, 0.3), MAT.walnut, [0, (H + FLOOR) / 2, D / 2 - T / 2]);
+add(box, woodBox(W, H - FLOOR, T, 0.6), MAT.walnut, [0, (H + FLOOR) / 2, -D / 2 + T / 2]);
+add(box, woodBox(T, H - FLOOR, D - 2 * T, 0.2), MAT.walnut, [-W / 2 + T / 2, (H + FLOOR) / 2, 0]);
+add(box, woodBox(T, H - FLOOR, D - 2 * T, 0.8), MAT.walnut, [W / 2 - T / 2, (H + FLOOR) / 2, 0]);
+add(box, new THREE.PlaneGeometry(W - 2 * T, D - 2 * T), MAT.velvet, [0, FLOOR + 0.002, 0], [-Math.PI / 2, 0, 0]);
+
+// 底座飾條
+add(box, woodBox(W + 0.12, 0.12, D + 0.12, 0.5), MAT.wenge, [0, 0.06, 0]);
+
+// 下緣黃銅護角
+for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  add(box, new THREE.BoxGeometry(0.2, 0.2, 0.2), MAT.brass, [sx * (W / 2 - 0.08), 0.1, sz * (D / 2 - 0.08)]).scale.set(1.12, 1.05, 1.12);
+}
+
+// 背面鉸鍊
+for (const sx of [-1.2, 1.2]) {
+  add(box, new THREE.CylinderGeometry(0.065, 0.065, 0.55, 20), MAT.brass, [sx, H, -D / 2 - 0.02], [0, 0, Math.PI / 2]);
+}
+
+/* ───────── 頂蓋（鉸鍊在背緣） ───────── */
+const LID_H = 0.3;
+const lidPivot = group(scene, [0, H, -D / 2]);
+const lid = group(lidPivot, [0, 0, D / 2]); // lid 區域座標：原點在盒頂中心
+add(lid, woodBox(W + 0.06, LID_H, D + 0.06, 0.15), MAT.walnut, [0, LID_H / 2, 0]);
+add(lid, woodBox(W - 0.5, 0.03, D - 0.5, 0.45), MAT.cherry, [0, LID_H + 0.015, 0]);
+for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+  add(lid, new THREE.BoxGeometry(0.22, 0.2, 0.22), MAT.brass, [sx * (W / 2 - 0.08), LID_H - 0.09, sz * (D / 2 - 0.08)]);
+}
+const LID_TOP = LID_H + 0.03;
+
+/* ───────── 桌面與光 ───────── */
+const table = add(scene, new THREE.PlaneGeometry(60, 60), MAT.table, [0, 0, 0], [-Math.PI / 2, 0, 0]);
+table.castShadow = false;
+
+scene.add(new THREE.HemisphereLight(0xffeedd, 0x1a120c, 0.35));
+const keyLight = new THREE.SpotLight(0xffe0b5, 340, 40, Math.PI / 5.2, 0.55, 2);
+keyLight.position.set(4.5, 10, 6.5);
+keyLight.target.position.set(0, 1, 0);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.bias = -0.0003;
+keyLight.shadow.normalBias = 0.02;
+scene.add(keyLight, keyLight.target);
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.55);
+rim.position.set(-6, 5, -7);
+scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffd4a0, 0.45);
+fill.position.set(-6, 3, 5);
+scene.add(fill);
+const backFill = new THREE.DirectionalLight(0xffd6a8, 1.1);
+backFill.position.set(3, 4, -8);
+scene.add(backFill);
+
+/* ───────── 補間動畫 ───────── */
+const tweens = [];
+const easeInOut = k => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+function tween(dur, step, done) { tweens.push({ t: 0, dur, step, done }); }
+function updateTweens(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i];
+    tw.t += dt;
+    const k = Math.min(1, tw.t / tw.dur);
+    tw.step(easeInOut(k), k);
+    if (k >= 1) { tweens.splice(i, 1); tw.done && tw.done(); }
+  }
+}
+// 被擋住時的回彈：物件沿軸抖一下再回原位
+function jiggle(obj, axis, dir, base) {
+  tween(0.32, (_, k) => { obj.position[axis] = base + dir * Math.sin(k * Math.PI * 3) * 0.035 * (1 - k); });
+}
+
+/* ───────── 遊戲狀態 ───────── */
+const S = {
+  slats: { top: false, bot: false, mid: false },
+  ringPos: [2, 5, 1],
+  ringsSolved: false,
+  gearPlaced: false, crankPlaced: false,
+  theta1: 0, theta1Base: 0, travel: 0, gearsSolved: false,
+  digits: [0, 0, 0], dialsSolved: false,
+  keyInserted: false, keyTurned: false,
+  won: false, moves: 0, hints: 0, started: false, startAt: 0,
+};
+
+/* ───────── 可互動物件註冊 ───────── */
+const interactives = [];
+function interactive(obj, handlers) {
+  obj.userData.handlers = handlers;
+  obj.traverse(o => { if (o.isMesh) { o.userData.owner = obj; interactives.push(o); } });
+}
+function removeInteractive(obj) {
+  obj.traverse(o => {
+    const i = interactives.indexOf(o);
+    if (i >= 0) interactives.splice(i, 1);
+  });
+}
+
+/* ───────── 齒輪幾何 ───────── */
+function gearGeometry(r, teeth, depth = 0.08, spokes = true) {
+  const s = (Math.PI * 2) / teeth, tip = r + 0.034, root = r - 0.036;
+  const shape = new THREE.Shape();
+  const pt = (rad, a) => [Math.cos(a) * rad, Math.sin(a) * rad];
+  for (let i = 0; i < teeth; i++) {
+    const a = i * s;
+    const pts = [pt(root, a - 0.28 * s), pt(tip, a - 0.14 * s), pt(tip, a + 0.14 * s), pt(root, a + 0.28 * s), pt(root, a + 0.5 * s)];
+    pts.forEach(([x, y], j) => (i === 0 && j === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)));
+  }
+  shape.closePath();
+  const hole = new THREE.Path(); hole.absarc(0, 0, 0.052, 0, Math.PI * 2, true); shape.holes.push(hole);
+  if (spokes && r > 0.26) {
+    const n = r > 0.4 ? 5 : 4, hr = r * 0.2, hd = r * 0.55;
+    for (let i = 0; i < n; i++) {
+      const p = new THREE.Path(), a = (i / n) * Math.PI * 2 + 0.3;
+      p.absarc(Math.cos(a) * hd, Math.sin(a) * hd, hr, 0, Math.PI * 2, true);
+      shape.holes.push(p);
+    }
+  }
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 1, curveSegments: 10 });
+  geo.translate(0, 0, -depth / 2);
+  return geo;
+}
+
+function yosegiTexture(seed) {
+  return canvasTexture(1024, 96, (g, w, h) => {
+    const cols = ['#d9b27c', '#3a2518', '#9a5634', '#e8cfa0', '#5b3a22'];
+    const r = rand(seed);
+    const step = 48;
+    for (let x = 0; x < w; x += step) {
+      for (let row = 0; row < 2; row++) {
+        const y0 = row * h / 2, y1 = y0 + h / 2;
+        g.fillStyle = cols[Math.floor(r() * cols.length)];
+        g.beginPath(); g.moveTo(x, y1); g.lineTo(x + step / 2, y0); g.lineTo(x + step, y1); g.fill();
+        g.fillStyle = cols[Math.floor(r() * cols.length)];
+        g.beginPath(); g.moveTo(x + step / 2, y0); g.lineTo(x + step, y1); g.lineTo(x + step * 1.5, y0); g.fill();
+      }
+    }
+    g.strokeStyle = 'rgba(20,10,4,0.55)'; g.lineWidth = 3;
+    g.strokeRect(1.5, 1.5, w - 3, h - 3);
+  });
+}
+
+/* ───────── 左側：寄木滑板（秘密箱） ───────── */
+const SLAT_X = -W / 2 - 0.1;
+const SLAT_LEN = 2.8;
+const SLATS = {
+  top: { y: 1.93, dir: -1, travel: 0.5, needs: [], mat: MAT.maple, seed: 3 },
+  mid: { y: 1.23, dir: 1, travel: 1.36, needs: ['top', 'bot'], mat: MAT.cherry, seed: 9 },
+  bot: { y: 0.53, dir: 1, travel: 0.5, needs: ['top'], mat: MAT.maple, seed: 17 },
+};
+
+// 滑板後方的襯板，中段挖出暗格
+const backX = -W / 2 - 0.03;
+add(box, woodBox(0.06, 0.72, SLAT_LEN + 0.1, 0.1), MAT.wenge, [backX, 1.93, 0]);
+add(box, woodBox(0.06, 0.72, SLAT_LEN + 0.1, 0.4), MAT.wenge, [backX, 0.53, 0]);
+add(box, woodBox(0.06, 0.68, 1.55, 0.7), MAT.wenge, [backX, 1.23, 0.675]);
+add(box, woodBox(0.06, 0.68, 0.1, 0.9), MAT.wenge, [backX, 1.23, -1.4]);
+add(box, new THREE.PlaneGeometry(1.2, 0.68), MAT.void, [-W / 2 - 0.002, 1.23, -0.75], [0, -Math.PI / 2, 0]);
+// 上下導軌
+add(box, woodBox(0.2, 0.06, D, 0.2), MAT.wenge, [-W / 2 - 0.1, 2.3, 0]);
+add(box, woodBox(0.2, 0.05, D, 0.3), MAT.wenge, [-W / 2 - 0.1, 0.145, 0]);
+
+for (const [name, def] of Object.entries(SLATS)) {
+  const g = group(box, [SLAT_X, def.y, 0]);
+  add(g, woodBox(0.08, 0.68, SLAT_LEN, def.seed * 0.1), def.mat);
+  const inlay = add(g, new THREE.PlaneGeometry(SLAT_LEN - 0.3, 0.2), new THREE.MeshStandardMaterial({ map: yosegiTexture(def.seed), roughness: 0.5, envMapIntensity: 0.3 }), [-0.0405, 0, 0], [0, -Math.PI / 2, 0]);
+  inlay.castShadow = false;
+  // 推拉方向的小圓孔（指示可以施力的一端）
+  add(g, new THREE.CylinderGeometry(0.035, 0.035, 0.01, 16), MAT.void, [-0.042, 0, -def.dir * (SLAT_LEN / 2 - 0.14)], [0, 0, Math.PI / 2]);
+  def.group = g;
+  def.offset = 0;
+  interactive(g, slatHandlers(name, def));
+}
+
+function slatBlocked(def) { return def.needs.some(n => !S.slats[n]); }
+
+function slatHandlers(name, def) {
+  let start = 0, axis = null;
+  const apply = () => { def.group.position.z = def.dir * def.offset; };
+  const finish = () => {
+    S.slats[name] = true;
+    removeInteractive(def.group);
+    sfx('click');
+    if (S.slats.top && S.slats.bot && S.slats.mid) {
+      markLock('slats');
+      toast('中間的木條滑開了——暗格裡有一枚黃銅齒輪');
+    }
+  };
+  const slideTo = (to, done) => tween(0.45, e => { def.offset = def.offset + (to - def.offset) * e; apply(); }, done);
+  return {
+    cursor: 'grab',
+    tap() {
+      countMove();
+      if (slatBlocked(def)) { blocked(); return; }
+      sfx('slide');
+      slideTo(def.travel, finish);
+    },
+    dragStart() {
+      start = def.offset;
+      const p = new THREE.Vector3(); def.group.getWorldPosition(p);
+      axis = screenAxis(p, new THREE.Vector3(0, 0, def.dir));
+    },
+    dragMove(dx, dy) {
+      const along = (dx * axis.x + dy * axis.y) / axis.len2;
+      const max = slatBlocked(def) ? 0.03 : def.travel;
+      def.offset = THREE.MathUtils.clamp(start + along, 0, max);
+      apply();
+    },
+    dragEnd() {
+      countMove();
+      if (slatBlocked(def)) { slideTo(0); blocked(); return; }
+      if (def.offset > def.travel * 0.4) { sfx('slide'); slideTo(def.travel, finish); }
+      else slideTo(0);
+    },
+  };
+  function blocked() {
+    jiggle(def.group, 'z', def.dir, 0);
+    sfx('thunk');
+    toast(name === 'mid' ? '推不動——上下兩條似乎卡住了它' : '推不動，好像被別的木條卡著');
+  }
+}
+
+// 暗格裡的齒輪
+const R2 = 0.3, N2 = 12;
+const looseGear = add(box, gearGeometry(R2, N2), MAT.brass, [-W / 2 - 0.03, 1.23, -0.75], [0, -Math.PI / 2, 0]);
+interactive(looseGear, {
+  cursor: 'pointer',
+  tap() {
+    if (!S.slats.mid) return;
+    removeInteractive(looseGear);
+    sfx('pick');
+    tween(0.35, e => { looseGear.position.x = -W / 2 - 0.03 - e * 0.5; looseGear.scale.setScalar(1 - e); }, () => { looseGear.visible = false; });
+    addItem('gear');
+    toast('取得：黃銅齒輪');
+  },
+});
+
+/* ───────── 曲柄模型（共用） ───────── */
+function crankModel() {
+  const g = new THREE.Group();
+  add(g, new THREE.CylinderGeometry(0.075, 0.075, 0.1, 6), MAT.brass, [0, 0.05, 0]);
+  add(g, new THREE.BoxGeometry(0.34, 0.045, 0.07), MAT.brass, [0.15, 0.12, 0]);
+  add(g, new THREE.CylinderGeometry(0.035, 0.035, 0.08, 12), MAT.brass, [0.3, 0.16, 0]);
+  add(g, new THREE.CylinderGeometry(0.045, 0.04, 0.17, 16), MAT.wenge, [0.3, 0.27, 0]);
+  return g;
+}
+
+/* ───────── 右側：連環轉盤 ───────── */
+const RING_C = [W / 2 + 0.02, 1.2, 0];
+const ringFace = group(box, RING_C, [0, Math.PI / 2, 0]); // 區域 z 軸 = 世界 +x
+add(ringFace, new THREE.CylinderGeometry(1.08, 1.08, 0.03, 64), MAT.brassDark, [0, 0, 0.015], [Math.PI / 2, 0, 0]);
+const RING_R = [[0.78, 1.0], [0.52, 0.74], [0.26, 0.48]];
+const RING_LINK = [[0, 1], [1, 2], [2, 0]];
+const ringGems = [0xc8674a, 0x74a898, 0xd2aa55];
+const rings = RING_R.map(([ri, ro], i) => {
+  const shape = new THREE.Shape(); shape.absarc(0, 0, ro, 0, Math.PI * 2, false);
+  const hole = new THREE.Path(); hole.absarc(0, 0, ri, 0, Math.PI * 2, true); shape.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2, curveSegments: 64 });
+  const pivot = group(ringFace, [0, 0, 0.04 + i * 0.012]);
+  add(pivot, geo, i === 1 ? MAT.brassDark : MAT.brass);
+  // 刻度
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2 + Math.PI / 2;
+    const tick = add(pivot, new THREE.BoxGeometry(0.012, ro - ri - 0.06, 0.01), MAT.void, [Math.cos(a) * (ri + ro) / 2, Math.sin(a) * (ri + ro) / 2, 0.066]);
+    tick.rotation.z = a - Math.PI / 2;
+    tick.visible = k !== 0;
+  }
+  const gem = add(pivot, new THREE.SphereGeometry(0.055, 20, 12), new THREE.MeshStandardMaterial({ color: ringGems[i], roughness: 0.25, metalness: 0.2, emissive: ringGems[i], emissiveIntensity: 0.15 }), [0, (ri + ro) / 2, 0.07]);
+  gem.scale.z = 0.6;
+  const ring = { pivot, target: S.ringPos[i] * Math.PI / 3, gem };
+  pivot.rotation.z = ring.target;
+  interactive(pivot, {
+    cursor: 'pointer',
+    tap() {
+      if (S.ringsSolved) return;
+      countMove();
+      RING_LINK[i].forEach(j => { S.ringPos[j] = (S.ringPos[j] + 1) % 6; rings[j].target += Math.PI / 3; });
+      sfx('click');
+      if (S.ringPos.every(p => p === 0)) solveRings();
+    },
+  });
+  return ring;
+});
+// 固定指針（頂端）
+add(ringFace, new THREE.ConeGeometry(0.06, 0.14, 3), MAT.brass, [0, 1.1, 0.06], [0, 0, Math.PI]);
+const ringHub = add(ringFace, new THREE.CylinderGeometry(0.22, 0.22, 0.1, 40), MAT.brassDark, [0, 0, 0.08], [Math.PI / 2, 0, 0]);
+
+const ringCrank = crankModel();
+ringCrank.rotation.x = Math.PI / 2; // 曲柄軸朝外（世界 +x）
+ringCrank.position.z = 0.02;
+ringCrank.scale.setScalar(0.001);
+ringCrank.visible = false;
+ringFace.add(ringCrank);
+
+function solveRings() {
+  S.ringsSolved = true;
+  rings.forEach(r => removeInteractive(r.pivot));
+  removeInteractive(ringHub);
+  markLock('rings');
+  setTimeout(() => {
+    sfx('unlock');
+    rings.forEach(r => { r.gem.material.emissiveIntensity = 1.1; });
+    tween(0.6, e => { ringHub.position.z = 0.08 + e * 0.25; ringHub.rotation.y = e * Math.PI; }, () => {
+      tween(0.4, e => { ringHub.scale.setScalar(1 - e); }, () => { ringHub.visible = false; });
+      ringCrank.visible = true;
+      tween(0.7, e => { ringCrank.scale.setScalar(0.001 + e); ringCrank.position.z = 0.02 + e * 0.12; });
+      toast('三個寶石對齊了——中心彈出一支曲柄');
+    });
+  }, 450);
+}
+interactive(ringHub, {
+  cursor: 'pointer',
+  tap() { countMove(); sfx('thunk'); toast('中心鎖死了，外圍三個環要先對齊指針'); },
+});
+interactive(ringCrank, {
+  cursor: 'pointer',
+  tap() {
+    removeInteractive(ringCrank);
+    sfx('pick');
+    tween(0.35, e => { ringCrank.scale.setScalar(1 - e); }, () => { ringCrank.visible = false; });
+    addItem('crank');
+    toast('取得：黃銅曲柄');
+  },
+});
+
+/* ───────── 頂蓋：齒輪與齒條 ───────── */
+// 角度 ψ = atan2(-z, x)；group.rotation.y 直接加在 ψ 上
+const N1 = 14, R1 = 0.35, N3 = 18, R3 = 0.45;
+const P1 = [-0.95, 0.37], P2 = [-0.3, 0.37], P3 = [0.35, 0.0];
+const GY = LID_TOP + 0.05;
+const psi = (a, b) => Math.atan2(-(b[1] - a[1]), b[0] - a[0]);
+const s1 = (2 * Math.PI) / N1, s2 = (2 * Math.PI) / N2, s3 = (2 * Math.PI) / N3;
+const frac = x => x - Math.floor(x);
+const TH2_0 = psi(P2, P1) - 0.5 * s2;                          // 與 G1 在 ψ=0 的齒相對
+const f2 = frac((psi(P2, P3) - TH2_0) / s2);
+const TH3_0 = psi(P3, P2) - (0.5 - f2) * s3;                  // f2 + f3 ≡ 0.5
+const RACK_TRAVEL = 0.95, RATIO3 = N1 / N3;
+
+function gearOnLid(p, r, n) {
+  const pivot = group(lid, [p[0], GY, p[1]]);
+  const gear = add(pivot, gearGeometry(r, n), MAT.brass, [0, 0, 0], [-Math.PI / 2, 0, 0]);
+  return { pivot, gear };
+}
+function axle(p, h = 0.18) {
+  return add(lid, new THREE.CylinderGeometry(0.048, 0.048, h, 16), MAT.steel, [p[0], LID_TOP + h / 2, p[1]]);
+}
+axle(P1); axle(P3);
+const axle2 = axle(P2, 0.2);
+const g1 = gearOnLid(P1, R1, N1);
+const g3 = gearOnLid(P3, R3, N3);
+const g2 = gearOnLid(P2, R2, N2);
+g2.pivot.visible = false;
+add(g1.pivot, new THREE.BoxGeometry(0.1, 0.1, 0.1), MAT.void, [0, 0.03, 0]); // 方形曲柄座
+g1.pivot.rotation.y = 0;
+g3.pivot.rotation.y = TH3_0;
+
+// 齒條與擋板
+const rackContact = P3[0];
+const f3r = frac((Math.PI / 2 - TH3_0) / s3);
+const RACK_P = Math.PI * (2 * R3 / N3);
+const rack = group(lid, [0, GY, 0]);
+const RACK_X0 = rackContact + f3r * RACK_P + 0.5 * RACK_P; // 齒條上一個齒的中心
+add(rack, woodBox(1.95, 0.08, 0.08), MAT.brassDark, [0.9, 0, -0.52]);
+for (let k = -4; k <= 8; k++) {
+  const x = RACK_X0 + k * RACK_P;
+  if (x < -0.05 || x > 1.8) continue;
+  add(rack, new THREE.BoxGeometry(RACK_P * 0.42, 0.08, 0.07), MAT.brassDark, [x, 0, -0.45]);
+}
+add(rack, woodBox(0.95, 0.025, 0.72, 0.2), MAT.brassDark, [1.4, 0.03, -0.92]);
+add(rack, new THREE.CylinderGeometry(0.04, 0.04, 0.03, 16), MAT.brass, [1.1, 0.05, -0.92]);
+// 導軌
+add(lid, new THREE.BoxGeometry(2.2, 0.03, 0.04), MAT.steel, [0.75, LID_TOP + 0.015, -1.31]);
+
+// 刻有線索的銅牌（被擋板蓋住）
+const plaqueTex = canvasTexture(640, 480, (g, w, h) => {
+  brassFill(g, w, h);
+  g.strokeStyle = 'rgba(60,40,12,0.8)'; g.lineWidth = 6; g.strokeRect(18, 18, w - 36, h - 36);
+  g.lineWidth = 2; g.strokeRect(32, 32, w - 64, h - 64);
+  g.fillStyle = '#3a270c'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '700 128px "Noto Serif TC", serif';
+  ['IV', 'IX', 'II'].forEach((t, i) => g.fillText(t, w * (0.2 + i * 0.3), h * 0.47));
+  g.font = '500 30px "Noto Serif TC", serif';
+  g.fillText('左      中      右', w / 2, h * 0.78);
+});
+add(lid, new THREE.PlaneGeometry(0.8, 0.6), new THREE.MeshStandardMaterial({ map: plaqueTex, metalness: 0.7, roughness: 0.4, envMapIntensity: 0.8 }), [1.4, LID_TOP + 0.004, -0.92], [-Math.PI / 2, 0, 0]);
+
+let attachedCrank = null;
+function applyDrive() {
+  g1.pivot.rotation.y = S.theta1;
+  if (!S.gearPlaced) return;
+  const d = S.theta1 - S.theta1Base;
+  g2.pivot.rotation.y = TH2_0 - d * (N1 / N2);
+  g3.pivot.rotation.y = TH3_0 + d * RATIO3;
+  S.travel = d * RATIO3 * R3;
+  rack.position.x = -S.travel;
+}
+// 驅動角度（含齒條行程的限制）
+function driveTo(theta) {
+  if (S.gearsSolved) return;
+  if (S.gearPlaced) {
+    const maxD = RACK_TRAVEL / (RATIO3 * R3);
+    theta = THREE.MathUtils.clamp(theta, S.theta1Base, S.theta1Base + maxD);
+  }
+  const moved = Math.abs(theta - S.theta1);
+  S.theta1 = theta;
+  applyDrive();
+  gearTick(moved);
+  if (S.gearPlaced && S.travel >= RACK_TRAVEL - 1e-4) solveGears();
+}
+let tickAcc = 0;
+function gearTick(moved) {
+  tickAcc += moved;
+  if (tickAcc > s1 * 0.5) { tickAcc = 0; sfx('tick'); }
+}
+function solveGears() {
+  S.gearsSolved = true;
+  markLock('gears');
+  sfx('unlock');
+  toast('擋板滑到底——銅牌上刻著三個數字');
+}
+
+interactive(axle2, {
+  cursor: 'pointer',
+  tap() {
+    if (S.gearPlaced) return;
+    if (selected === 'gear') {
+      useItem('gear');
+      S.gearPlaced = true;
+      // 對齊到 G1 的齒距，保持三顆齒輪咬合
+      const snapped = S.theta1Base + Math.round((S.theta1 - S.theta1Base) / s1) * s1;
+      S.theta1 = snapped; S.theta1Base = snapped;
+      g2.pivot.visible = true;
+      g2.pivot.rotation.y = TH2_0;
+      applyDrive();
+      tween(0.5, e => { g2.pivot.position.y = GY + (1 - e) * 0.6; }, () => sfx('click'));
+      removeInteractive(axle2);
+      toast('齒輪卡進了中間的軸');
+    } else if (selected) { toast('這根軸像是要裝一個齒輪'); sfx('thunk'); }
+    else { toast('一根空著的軸，少了一個齒輪'); }
+  },
+});
+
+let dragCenter = null, dragAngle = 0;
+// 點擊曲柄時的目標角度；每幀往目標推進，連點會累加而不互相抵銷
+let crankGoal = 0;
+function updateCrank(dt) {
+  if (S.gearsSolved || crankGoal <= S.theta1 + 1e-4) return;
+  const before = S.theta1;
+  driveTo(Math.min(crankGoal, S.theta1 + dt * 4));
+  if (S.theta1 === before) crankGoal = S.theta1; // 到了齒條盡頭
+}
+interactive(g1.pivot, {
+  cursor: 'grab',
+  tap() {
+    if (!S.crankPlaced) {
+      if (selected === 'crank') attachCrank();
+      else if (selected) { toast('這個零件裝不上去'); sfx('thunk'); }
+      else { toast('大齒輪中央有個方孔，像是要插上把手'); sfx('thunk'); }
+      return;
+    }
+    countMove();
+    if (S.gearsSolved) return;
+    crankGoal = Math.max(crankGoal, S.theta1) + Math.PI / 2;
+    if (!S.gearPlaced) toast('大齒輪空轉，中間好像少了一個齒輪');
+  },
+  dragStart(ev) {
+    if (!S.crankPlaced) return false;
+    crankGoal = S.theta1;
+    const p = new THREE.Vector3(); g1.pivot.getWorldPosition(p);
+    dragCenter = toScreen(p);
+    dragAngle = Math.atan2(-(ev.clientY - dragCenter.y), ev.clientX - dragCenter.x);
+  },
+  dragMove(dx, dy, ev) {
+    const a = Math.atan2(-(ev.clientY - dragCenter.y), ev.clientX - dragCenter.x);
+    let delta = a - dragAngle;
+    if (delta > Math.PI) delta -= 2 * Math.PI;
+    if (delta < -Math.PI) delta += 2 * Math.PI;
+    dragAngle = a;
+    driveTo(S.theta1 + delta);
+  },
+  dragEnd() {
+    countMove();
+    if (!S.gearPlaced && S.crankPlaced) toast('大齒輪空轉，中間好像少了一個齒輪');
+  },
+});
+
+function attachCrank() {
+  useItem('crank');
+  S.crankPlaced = true;
+  attachedCrank = crankModel();
+  attachedCrank.position.y = 0.6;
+  g1.pivot.add(attachedCrank);
+  attachedCrank.traverse(o => { if (o.isMesh) { o.userData.owner = g1.pivot; interactives.push(o); } });
+  tween(0.5, e => { attachedCrank.position.y = 0.6 - e * 0.56; }, () => sfx('click'));
+  toast('曲柄插上了，試著轉轉看');
+}
+
+/* ───────── 正面：密碼滾筒 ───────── */
+const digitsTex = canvasTexture(1024, 256, (g, w, h) => {
+  brassFill(g, w, h);
+  g.fillStyle = '#2e1e08'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '700 92px "Noto Serif TC", Georgia, serif';
+  for (let k = 0; k < 10; k++) {
+    const cx = (k + 0.5) * w / 10;
+    g.save(); g.translate(cx, h / 2); g.rotate(-Math.PI / 2); g.fillText(String(k), 0, 6); g.restore();
+    g.fillStyle = 'rgba(46,30,8,0.45)'; g.fillRect(k * w / 10, 0, 2, h); g.fillStyle = '#2e1e08';
+  }
+  g.fillStyle = 'rgba(46,30,8,0.6)'; g.fillRect(0, 0, w, 10); g.fillRect(0, h - 10, w, 10);
+});
+digitsTex.wrapS = THREE.RepeatWrapping;
+const DIAL_Y = 1.92, DIAL_Z = D / 2 + 0.1, CODE = [4, 9, 2];
+const dialFrame = group(box, [0, DIAL_Y, D / 2]);
+add(dialFrame, new THREE.PlaneGeometry(1.62, 0.5), MAT.void, [0, 0, 0.004]);
+add(dialFrame, new THREE.BoxGeometry(1.76, 0.08, 0.26), MAT.brassDark, [0, 0.27, 0.13]);
+add(dialFrame, new THREE.BoxGeometry(1.76, 0.08, 0.26), MAT.brassDark, [0, -0.27, 0.13]);
+for (const x of [-0.84, -0.26, 0.26, 0.84]) add(dialFrame, new THREE.BoxGeometry(0.06, 0.62, 0.26), MAT.brassDark, [x, 0, 0.13]);
+add(dialFrame, new THREE.CylinderGeometry(0.02, 0.02, 1.62, 8), MAT.steel, [0, 0, 0.1], [0, 0, Math.PI / 2]);
+add(dialFrame, new THREE.ConeGeometry(0.04, 0.08, 3), MAT.brass, [-0.9, 0, 0.27], [0, 0, -Math.PI / 2]);
+
+const dials = [-0.55, 0, 0.55].map((x, i) => {
+  const geo = new THREE.CylinderGeometry(0.2, 0.2, 0.46, 40, 1);
+  geo.rotateZ(-Math.PI / 2);
+  const m = add(box, geo, new THREE.MeshStandardMaterial({ map: digitsTex, metalness: 0.85, roughness: 0.33, envMapIntensity: 1 }), [x, DIAL_Y, DIAL_Z]);
+  const d = { mesh: m, target: -2 * Math.PI * 0.5 / 10 };
+  m.rotation.x = d.target;
+  interactive(m, {
+    cursor: 'pointer',
+    tap() {
+      if (S.dialsSolved) return;
+      countMove();
+      S.digits[i] = (S.digits[i] + 1) % 10;
+      d.target -= (2 * Math.PI) / 10;
+      sfx('click');
+      if (S.digits.every((v, j) => v === CODE[j])) solveDials();
+    },
+  });
+  return d;
+});
+
+// 抽屜
+const drawer = group(box, [0, 0.72, D / 2]);
+add(box, new THREE.PlaneGeometry(1.8, 0.72), MAT.void, [0, 0.72, D / 2 + 0.002]);
+add(drawer, woodBox(1.86, 0.74, 0.07, 0.35), MAT.cherry, [0, 0, 0.035]);
+add(drawer, woodBox(1.7, 0.03, 0.95, 0.1), MAT.walnut, [0, -0.3, -0.48]);
+add(drawer, new THREE.PlaneGeometry(1.62, 0.9), MAT.velvet, [0, -0.284, -0.48], [-Math.PI / 2, 0, 0]);
+for (const sx of [-0.83, 0.83]) add(drawer, woodBox(0.04, 0.5, 0.95, 0.2), MAT.walnut, [sx, -0.06, -0.48]);
+add(drawer, woodBox(1.7, 0.5, 0.04, 0.5), MAT.walnut, [0, -0.06, -0.95]);
+const knob = add(drawer, new THREE.SphereGeometry(0.075, 24, 16), MAT.brass, [0, 0, 0.12]);
+add(drawer, new THREE.CylinderGeometry(0.03, 0.03, 0.06, 12), MAT.brass, [0, 0, 0.08], [Math.PI / 2, 0, 0]);
+interactive(drawer, {
+  cursor: 'pointer',
+  tap() {
+    if (S.dialsSolved) return;
+    countMove();
+    jiggle(drawer, 'z', 1, D / 2);
+    sfx('thunk');
+    toast('抽屜鎖著，上方的密碼滾筒要先轉對');
+  },
+});
+
+function keyModel() {
+  const g = new THREE.Group();
+  add(g, new THREE.TorusGeometry(0.085, 0.024, 12, 32), MAT.brass, [-0.24, 0, 0], [0, 0, 0]);
+  add(g, new THREE.CylinderGeometry(0.022, 0.022, 0.38, 12), MAT.brass, [0, 0, 0], [0, 0, Math.PI / 2]);
+  add(g, new THREE.BoxGeometry(0.06, 0.1, 0.02), MAT.brass, [0.15, -0.05, 0]);
+  add(g, new THREE.BoxGeometry(0.03, 0.06, 0.02), MAT.brass, [0.08, -0.04, 0]);
+  return g;
+}
+const drawerKey = keyModel();
+drawerKey.position.set(0.1, -0.26, -0.5);
+drawerKey.rotation.x = -Math.PI / 2;
+drawerKey.rotation.z = 0.35;
+drawer.add(drawerKey);
+interactive(drawerKey, {
+  cursor: 'pointer',
+  tap() {
+    removeInteractive(drawerKey);
+    sfx('pick');
+    tween(0.35, e => { drawerKey.position.y = -0.26 + e * 0.4; drawerKey.scale.setScalar(1 - e); }, () => { drawerKey.visible = false; });
+    addItem('key');
+    toast('取得：黃銅鑰匙');
+  },
+});
+
+function solveDials() {
+  S.dialsSolved = true;
+  dials.forEach(d => removeInteractive(d.mesh));
+  removeInteractive(drawer);
+  markLock('dials');
+  setTimeout(() => {
+    sfx('unlock');
+    tween(1.1, e => { drawer.position.z = D / 2 + e * 0.9; });
+    toast('喀一聲，抽屜彈了出來');
+  }, 500);
+}
+
+/* ───────── 背面：鎖孔 ───────── */
+const KEYHOLE = [0, 0.95, -D / 2];
+const esc = group(box, KEYHOLE, [0, Math.PI, 0]); // 區域 +z = 世界 -z（朝外）
+add(esc, new THREE.CylinderGeometry(0.26, 0.26, 0.03, 48), MAT.brass, [0, 0, 0.015], [Math.PI / 2, 0, 0]);
+add(esc, new THREE.TorusGeometry(0.26, 0.018, 8, 48), MAT.brassDark, [0, 0, 0.03]);
+const holeShape = new THREE.Shape();
+holeShape.absarc(0, 0.04, 0.045, 0, Math.PI * 2, false);
+const slot = new THREE.Shape();
+slot.moveTo(-0.022, 0.02); slot.lineTo(0.022, 0.02); slot.lineTo(0.038, -0.1); slot.lineTo(-0.038, -0.1); slot.closePath();
+add(esc, new THREE.ShapeGeometry([holeShape, slot]), MAT.void, [0, 0, 0.032]);
+for (let k = 0; k < 6; k++) {
+  const a = (k / 6) * Math.PI * 2;
+  add(esc, new THREE.SphereGeometry(0.018, 10, 8), MAT.brassDark, [Math.cos(a) * 0.2, Math.sin(a) * 0.2, 0.03]);
+}
+const keyHit = add(esc, new THREE.CircleGeometry(0.26, 32), new THREE.MeshBasicMaterial({ visible: false }), [0, 0, 0.035]);
+const keyTurn = group(esc); // 繞鑰匙桿（區域 z）旋轉
+const lockKey = keyModel();
+lockKey.rotation.y = Math.PI / 2; // 鑰匙桿沿區域 -z 插入，鑰匙柄留在外側
+lockKey.position.set(0, 0.04, 0.12);
+lockKey.visible = false;
+keyTurn.add(lockKey);
+
+interactive(keyHit, {
+  cursor: 'pointer',
+  tap() {
+    if (S.keyInserted) return;
+    if (selected === 'key') {
+      useItem('key');
+      S.keyInserted = true;
+      lockKey.visible = true;
+      tween(0.6, e => { lockKey.position.z = 0.62 - e * 0.5; }, () => sfx('click'));
+      removeInteractive(keyHit);
+      interactive(lockKey, { cursor: 'pointer', tap: turnKey });
+      toast('鑰匙插進去了，轉它');
+    } else if (selected) { toast('塞不進鎖孔'); sfx('thunk'); }
+    else { toast('一個黃銅鎖孔——鑰匙會在哪裡？'); sfx('thunk'); }
+  },
+});
+
+function turnKey() {
+  if (S.keyTurned) return;
+  countMove();
+  S.keyTurned = true;
+  removeInteractive(lockKey);
+  tween(0.7, e => { keyTurn.rotation.z = -e * Math.PI / 2; }, () => {
+    sfx('unlock');
+    markLock('key');
+    setTimeout(openLid, 350);
+  });
+}
+
+/* ───────── 內膛：水晶 ───────── */
+add(box, new THREE.CylinderGeometry(0.28, 0.34, 0.12, 32), MAT.brass, [0, FLOOR + 0.06, 0]);
+const crystalMat = new THREE.MeshStandardMaterial({ color: 0x8fe6d4, emissive: 0x3fd1b8, emissiveIntensity: 0, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.92, flatShading: true });
+const crystal = add(box, new THREE.OctahedronGeometry(0.3, 0), crystalMat, [0, FLOOR + 0.45, 0]);
+crystal.scale.set(0.8, 1.35, 0.8);
+const crystalLight = new THREE.PointLight(0x5fe0c8, 0, 6, 2);
+crystalLight.position.set(0, FLOOR + 0.6, 0);
+scene.add(crystalLight);
+
+function openLid() {
+  S.won = true;
+  sfx('lid');
+  flyTo('open');
+  tween(2.4, e => { lidPivot.rotation.x = -1.92 * e; });
+  tween(3.2, e => { crystalMat.emissiveIntensity = 2.2 * e; crystalLight.intensity = 9 * e; }, () => {
+    sfx('chime');
+    showWin();
+  });
+}
+
+/* ───────── 螢幕投影工具 ───────── */
+function toScreen(v) {
+  const r = canvas.getBoundingClientRect();
+  const p = v.clone().project(camera);
+  return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height };
+}
+function screenAxis(origin, dir) {
+  const a = toScreen(origin), b = toScreen(origin.clone().add(dir));
+  const x = b.x - a.x, y = b.y - a.y;
+  return { x, y, len2: Math.max(x * x + y * y, 900) };
+}
+
+/* ───────── 點擊與拖曳（須在 OrbitControls 之前註冊） ───────── */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const isShown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+function pick(ev) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(scene.children, true).find(h => h.object.isMesh && isShown(h.object));
+  if (!hit || !interactives.includes(hit.object)) return null;
+  return hit.object.userData.owner.userData.handlers;
+}
+g1.pivot.userData.handlers.canDrag = () => S.crankPlaced;
+const canDrag = h => !!h.dragStart && (!h.canDrag || h.canDrag());
+
+let press = null;
+canvas.addEventListener('pointerdown', ev => {
+  ensureAudio();
+  if (press || !S.started) return;
+  const h = pick(ev);
+  if (!h) return;
+  press = { x: ev.clientX, y: ev.clientY, h, dragging: false, id: ev.pointerId };
+  if (canDrag(h)) controls.enabled = false;
+});
+window.addEventListener('pointermove', ev => {
+  if (!press) { hover(ev); return; }
+  if (ev.pointerId !== press.id) return;
+  const dx = ev.clientX - press.x, dy = ev.clientY - press.y;
+  if (!press.dragging && Math.hypot(dx, dy) > 7) {
+    press.dragging = canDrag(press.h) && press.h.dragStart(ev) !== false ? 'on' : 'off';
+  }
+  if (press.dragging === 'on') press.h.dragMove(dx, dy, ev);
+});
+function endPress(ev, cancelled) {
+  if (!press || ev.pointerId !== press.id) return;
+  const p = press; press = null;
+  controls.enabled = true;
+  if (p.dragging === 'on') p.h.dragEnd && p.h.dragEnd();
+  else if (!cancelled && !p.dragging) p.h.tap && p.h.tap();
+}
+window.addEventListener('pointerup', ev => endPress(ev, false));
+window.addEventListener('pointercancel', ev => endPress(ev, true));
+let hoverFrame = 0;
+function hover(ev) {
+  if (ev.pointerType !== 'mouse' || hoverFrame) return;
+  hoverFrame = requestAnimationFrame(() => {
+    hoverFrame = 0;
+    const h = S.started ? pick(ev) : null;
+    canvas.style.cursor = h ? h.cursor || 'pointer' : '';
+  });
+}
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.copy(TARGET);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enablePan = false;
+controls.minDistance = 4.2;
+controls.maxDistance = 15;
+controls.minPolarAngle = 0.08;
+controls.maxPolarAngle = Math.PI * 0.485;
+controls.rotateSpeed = 0.8;
+controls.addEventListener('start', () => { flight = null; setViewButton(null); });
+
+/* ───────── 視角切換 ───────── */
+const VIEWS = {
+  front: [0.4, 3.1, 8.6], left: [-8.6, 3.2, 0.6], right: [8.6, 3.2, 0.6],
+  back: [-0.4, 3.0, -8.6], top: [0.1, 9.4, 2.4], open: [2.2, 6.8, 6.6], start: [5.6, 4.7, 7.4],
+};
+let flight = null;
+function flyTo(name) {
+  const from = new THREE.Spherical().setFromVector3(camera.position.clone().sub(TARGET));
+  const to = new THREE.Spherical().setFromVector3(new THREE.Vector3(...VIEWS[name]).sub(TARGET));
+  let dt = to.theta - from.theta;
+  if (dt > Math.PI) dt -= 2 * Math.PI;
+  if (dt < -Math.PI) dt += 2 * Math.PI;
+  flight = { t: 0, dur: 0.9, from, dTheta: dt, to };
+  setViewButton(name);
+}
+function updateFlight(dt) {
+  if (!flight) return;
+  flight.t += dt;
+  const e = easeInOut(Math.min(1, flight.t / flight.dur));
+  const s = new THREE.Spherical(
+    flight.from.radius + (flight.to.radius - flight.from.radius) * e,
+    flight.from.phi + (flight.to.phi - flight.from.phi) * e,
+    flight.from.theta + flight.dTheta * e,
+  );
+  camera.position.setFromSpherical(s).add(TARGET);
+  if (e >= 1) flight = null;
+}
+const viewButtons = [...document.querySelectorAll('[data-view]')];
+function setViewButton(name) {
+  viewButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+}
+viewButtons.forEach(b => b.addEventListener('click', () => { ensureAudio(); flyTo(b.dataset.view); }));
+
+/* ───────── 道具欄 ───────── */
+const gearIcon = (() => {
+  const pts = [];
+  for (let i = 0; i < 40; i++) {
+    const a = (i / 40) * Math.PI * 2, r = i % 4 < 2 ? 15 : 11.5;
+    pts.push(`${(18 + Math.cos(a) * r).toFixed(1)},${(18 + Math.sin(a) * r).toFixed(1)}`);
+  }
+  return `<svg viewBox="0 0 36 36" aria-hidden="true"><polygon points="${pts.join(' ')}" fill="#c9a04a" stroke="#6e5020" stroke-width="1"/><circle cx="18" cy="18" r="4" fill="#1c1612"/><circle cx="18" cy="18" r="8" fill="none" stroke="#8a6a2c" stroke-width="1.5"/></svg>`;
+})();
+const ITEMS = {
+  gear: { name: '黃銅齒輪', svg: gearIcon },
+  crank: { name: '黃銅曲柄', svg: '<svg viewBox="0 0 36 36" aria-hidden="true"><rect x="5" y="22" width="10" height="10" rx="1.5" fill="#c9a04a" stroke="#6e5020"/><path d="M10 25 L25 11" stroke="#c9a04a" stroke-width="5" stroke-linecap="round"/><rect x="22" y="3" width="8" height="13" rx="4" fill="#4a3020" stroke="#1c0f07"/></svg>' },
+  key: { name: '黃銅鑰匙', svg: '<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="10" cy="18" r="6.5" fill="none" stroke="#c9a04a" stroke-width="3.2"/><path d="M16.5 18 H32" stroke="#c9a04a" stroke-width="3.2" stroke-linecap="round"/><path d="M27 18 v6 M31 18 v4.5 M23 18 v3.5" stroke="#c9a04a" stroke-width="2.6"/></svg>' },
+};
+const inv = [];
+let selected = null;
+const slots = [0, 1, 2].map(i => document.getElementById(`slot-${i}`));
+function renderTray() {
+  slots.forEach((el, i) => {
+    const id = inv[i];
+    if (id) {
+      el.dataset.item = id;
+      el.innerHTML = ITEMS[id].svg;
+      el.title = ITEMS[id].name;
+      el.setAttribute('aria-label', ITEMS[id].name);
+      el.setAttribute('aria-pressed', String(selected === id));
+    } else {
+      delete el.dataset.item;
+      el.innerHTML = '';
+      el.title = '';
+      el.setAttribute('aria-label', '空道具格');
+      el.setAttribute('aria-pressed', 'false');
+    }
+  });
+}
+slots.forEach((el, i) => el.addEventListener('click', () => {
+  const id = inv[i];
+  if (!id) return;
+  selected = selected === id ? null : id;
+  sfx('tick');
+  toast(selected ? `拿著${ITEMS[id].name}——點擊要使用的位置` : `放下${ITEMS[id].name}`);
+  renderTray();
+}));
+function addItem(id) {
+  inv.push(id);
+  selected = id;
+  renderTray();
+}
+function useItem(id) {
+  inv.splice(inv.indexOf(id), 1);
+  if (selected === id) selected = null;
+  countMove();
+  sfx('click');
+  renderTray();
+}
+
+/* ───────── HUD ───────── */
+const $ = id => document.getElementById(id);
+function markLock(name) { document.querySelector(`[data-lock="${name}"]`).classList.add('done'); }
+function countMove() { S.moves++; $('moves').textContent = `${S.moves} 步`; }
+let toastTimer = 0;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+const fmtTime = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+let endAt = 0;
+function elapsed() { return ((endAt || performance.now()) - S.startAt) / 1000; }
+
+/* ───────── 提示 ───────── */
+const has = id => inv.includes(id);
+function ringSolution() {
+  let best = null;
+  for (let a = 0; a < 6; a++) for (let b = 0; b < 6; b++) for (let c = 0; c < 6; c++) {
+    const [o, m, i] = S.ringPos;
+    if ((o + a + c) % 6 || (m + a + b) % 6 || (i + b + c) % 6) continue;
+    if (!best || a + b + c < best[0] + best[1] + best[2]) best = [a, b, c];
+  }
+  const names = ['外環', '中環', '內環'];
+  return best.map((n, k) => (n ? `${names[k]} ${n} 下` : '')).filter(Boolean).join('、');
+}
+function currentHint() {
+  const gearTaken = has('gear') || S.gearPlaced, crankTaken = has('crank') || S.crankPlaced;
+  if (!gearTaken && !S.slats.mid) return { view: 'left', title: '左側：寄木滑板', lines: ['左側三條木條可以滑動，但有先後順序，被卡住的會彈回來。', '先把最上面那條往後推，再把最下面那條往前推，最後是中間那條（往前）。'] };
+  if (!gearTaken) return { view: 'left', title: '左側：暗格', lines: ['中間木條後面的暗格裡有東西，點它收進道具欄。'] };
+  if (!crankTaken) return { view: 'right', title: '右側：連環轉盤', lines: ['右側三個環各有一顆寶石，要讓三顆都對準頂端的指針。', '點一個環時會連帶轉動另一個：外環帶中環、中環帶內環、內環帶外環。', `從現在的位置：點 ${ringSolution()}。`] };
+  if (!S.gearPlaced || !S.crankPlaced) return { view: 'top', title: '頂蓋：齒輪', lines: ['頂蓋上有一根空軸，還有一個中央帶方孔的大齒輪。', '在道具欄點選齒輪，再點空軸；點選曲柄，再點大齒輪。'] };
+  if (!S.gearsSolved) return { view: 'top', title: '頂蓋：齒條', lines: ['拖著曲柄繞圈轉，或直接點它。只有逆時針轉得動。', '一直轉到右後方的擋板完全滑開。'] };
+  if (!S.dialsSolved) return { view: 'front', title: '正面：密碼滾筒', lines: ['頂蓋銅牌上的羅馬數字，對應正面三個滾筒（左、中、右）。', 'IV = 4、IX = 9、II = 2。點滾筒讓數字往下一個跳。'] };
+  if (!S.keyInserted) return { view: has('key') ? 'back' : 'front', title: '背面：鎖孔', lines: ['抽屜裡有一把鑰匙，點它收起來。', '在道具欄點選鑰匙，轉到背面點鎖孔。'] };
+  return { view: 'back', title: '背面：轉動鑰匙', lines: ['點插在鎖孔裡的鑰匙，把它轉開。'] };
+}
+let hintState = null;
+$('btn-hint').addEventListener('click', () => {
+  if (S.won) return;
+  const h = currentHint();
+  hintState = { h, level: 0 };
+  S.hints++;
+  renderHint();
+  $('hint-layer').hidden = false;
+});
+function renderHint() {
+  const { h, level } = hintState;
+  $('hint-title').textContent = h.title;
+  $('hint-body').textContent = h.lines.slice(0, level + 1).join(' ');
+  $('hint-more').hidden = level >= h.lines.length - 1;
+}
+$('hint-more').addEventListener('click', () => { hintState.level++; renderHint(); });
+$('hint-close').addEventListener('click', () => { $('hint-layer').hidden = true; flyTo(hintState.h.view); });
+
+/* ───────── 音效（WebAudio 合成） ───────── */
+let actx = null, soundOn = true;
+function ensureAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { actx = null; }
+}
+function noise(dur, freq, q, gain, when = 0) {
+  const t0 = actx.currentTime + when;
+  const buf = actx.createBuffer(1, Math.ceil(actx.sampleRate * dur), actx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(f).connect(g).connect(actx.destination);
+  src.start(t0);
+}
+function tone(freq, dur, type, gain, when = 0) {
+  const t0 = actx.currentTime + when;
+  const o = actx.createOscillator(); o.type = type; o.frequency.value = freq;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(actx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function sfx(kind) {
+  if (!soundOn || !actx) return;
+  if (kind === 'click') { noise(0.035, 3000, 4, 0.5); tone(1700, 0.04, 'square', 0.03); }
+  else if (kind === 'tick') noise(0.018, 4200, 6, 0.28);
+  else if (kind === 'thunk') { tone(85, 0.14, 'sine', 0.4); noise(0.07, 380, 1, 0.3); }
+  else if (kind === 'slide') noise(0.42, 850, 0.6, 0.16);
+  else if (kind === 'pick') { tone(880, 0.14, 'triangle', 0.12); tone(1320, 0.2, 'triangle', 0.09, 0.07); }
+  else if (kind === 'unlock') { noise(0.05, 2400, 3, 0.55); tone(220, 0.22, 'triangle', 0.2, 0.04); tone(330, 0.34, 'triangle', 0.14, 0.12); }
+  else if (kind === 'lid') { noise(1.6, 260, 0.7, 0.14); tone(60, 0.9, 'sine', 0.15); }
+  else if (kind === 'chime') [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 1.6, 'sine', 0.1, i * 0.13));
+}
+$('btn-sound').addEventListener('click', e => {
+  soundOn = !soundOn;
+  e.currentTarget.textContent = soundOn ? '音效 開' : '音效 關';
+  e.currentTarget.setAttribute('aria-pressed', String(soundOn));
+});
+
+/* ───────── 開場與結局 ───────── */
+$('btn-start').addEventListener('click', () => {
+  ensureAudio();
+  $('intro').hidden = true;
+  S.started = true;
+  S.startAt = performance.now();
+  flyTo('front');
+  setTimeout(() => toast('先四處轉轉看——每一面都有機關'), 900);
+});
+function showWin() {
+  endAt = performance.now();
+  $('win-time').textContent = fmtTime(elapsed());
+  $('win-moves').textContent = String(S.moves);
+  $('win-hints').textContent = String(S.hints);
+  $('win-layer').hidden = false;
+}
+$('win-close').addEventListener('click', () => { $('win-layer').hidden = true; });
+$('win-again').addEventListener('click', () => location.reload());
+
+/* ───────── 尺寸與主迴圈 ───────── */
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  const base = Math.tan(THREE.MathUtils.degToRad(18));
+  camera.fov = camera.aspect < 1.1 ? Math.min(66, 2 * THREE.MathUtils.radToDeg(Math.atan(base * 1.1 / camera.aspect * 0.86))) : 36;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+camera.position.set(...VIEWS.start);
+controls.update();
+
+const clock = new THREE.Clock();
+let lastSecond = -1;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  updateTweens(dt);
+  updateFlight(dt);
+  updateCrank(dt);
+  const k = Math.min(1, dt * 12);
+  rings.forEach(r => { r.pivot.rotation.z += (r.target - r.pivot.rotation.z) * k; });
+  dials.forEach(d => { d.mesh.rotation.x += (d.target - d.mesh.rotation.x) * k; });
+  if (S.won) crystal.rotation.y += dt * 0.7;
+  controls.update();
+  renderer.render(scene, camera);
+  if (S.started && !endAt) {
+    const sec = Math.floor(elapsed());
+    if (sec !== lastSecond) { lastSecond = sec; $('timer').textContent = fmtTime(sec); }
+  }
+});
+
+document.fonts.load('700 92px "Noto Serif TC"', '0123456789IVX左中右').then(() => {
+  digitsTex.userData.redraw();
+  plaqueTex.userData.redraw();
+}).catch(() => {});
+$('loading').classList.add('gone');
+</script>
+</body>
+</html>

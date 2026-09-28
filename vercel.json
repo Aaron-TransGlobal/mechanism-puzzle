@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "prototype",
+  "rewrites": [{ "source": "/", "destination": "/v0-five-locks.html" }]
+}
