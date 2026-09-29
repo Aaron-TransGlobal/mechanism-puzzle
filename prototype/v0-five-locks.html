@@ -436,13 +436,23 @@ const S = {
 const interactives = [];
 function interactive(obj, handlers) {
   obj.userData.handlers = handlers;
-  obj.traverse(o => { if (o.isMesh) { o.userData.owner = obj; interactives.push(o); } });
+  // 巢狀物件（例如抽屜裡的鑰匙）已有自己的擁有者時不覆寫
+  obj.traverse(o => { if (o.isMesh && (!o.userData.owner || o.userData.owner === obj)) { o.userData.owner = obj; interactives.push(o); } });
 }
 function removeInteractive(obj) {
   obj.traverse(o => {
+    if (o.userData.owner !== obj) return;
     const i = interactives.indexOf(o);
     if (i >= 0) interactives.splice(i, 1);
   });
+}
+// 細小零件用的隱形點擊範圍，手機上比較好點中
+const HIT_MAT = new THREE.MeshBasicMaterial({ visible: false });
+function hitProxy(parent, size, pos) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(...size), HIT_MAT);
+  m.position.set(...pos);
+  parent.add(m);
+  return m;
 }
 
 /* ───────── 齒輪幾何 ───────── */
@@ -572,6 +582,7 @@ function slatHandlers(name, def) {
 // 暗格裡的齒輪
 const R2 = 0.3, N2 = 12;
 const looseGear = add(box, gearGeometry(R2, N2), MAT.brass, [-W / 2 - 0.03, 1.23, -0.75], [0, -Math.PI / 2, 0]);
+hitProxy(looseGear, [0.64, 0.64, 0.1], [0, 0, 0]); // 齒輪中心有軸孔，射線會穿過去
 interactive(looseGear, {
   cursor: 'pointer',
   tap() {
@@ -591,6 +602,7 @@ function crankModel() {
   add(g, new THREE.BoxGeometry(0.34, 0.045, 0.07), MAT.brass, [0.15, 0.12, 0]);
   add(g, new THREE.CylinderGeometry(0.035, 0.035, 0.08, 12), MAT.brass, [0.3, 0.16, 0]);
   add(g, new THREE.CylinderGeometry(0.045, 0.04, 0.17, 16), MAT.wenge, [0.3, 0.27, 0]);
+  hitProxy(g, [0.56, 0.42, 0.24], [0.14, 0.18, 0]);
   return g;
 }
 
@@ -899,7 +911,7 @@ add(drawer, new THREE.CylinderGeometry(0.03, 0.03, 0.06, 12), MAT.brass, [0, 0, 
 interactive(drawer, {
   cursor: 'pointer',
   tap() {
-    if (S.dialsSolved) return;
+    if (S.dialsSolved) { takeDrawerKey(); return; }
     countMove();
     jiggle(drawer, 'z', 1, D / 2);
     sfx('thunk');
@@ -913,6 +925,7 @@ function keyModel() {
   add(g, new THREE.CylinderGeometry(0.022, 0.022, 0.38, 12), MAT.brass, [0, 0, 0], [0, 0, Math.PI / 2]);
   add(g, new THREE.BoxGeometry(0.06, 0.1, 0.02), MAT.brass, [0.15, -0.05, 0]);
   add(g, new THREE.BoxGeometry(0.03, 0.06, 0.02), MAT.brass, [0.08, -0.04, 0]);
+  hitProxy(g, [0.64, 0.28, 0.26], [-0.04, -0.02, 0]);
   return g;
 }
 const drawerKey = keyModel();
@@ -920,26 +933,27 @@ drawerKey.position.set(0.1, -0.26, -0.5);
 drawerKey.rotation.x = -Math.PI / 2;
 drawerKey.rotation.z = 0.35;
 drawer.add(drawerKey);
-interactive(drawerKey, {
-  cursor: 'pointer',
-  tap() {
-    removeInteractive(drawerKey);
-    sfx('pick');
-    tween(0.35, e => { drawerKey.position.y = -0.26 + e * 0.4; drawerKey.scale.setScalar(1 - e); }, () => { drawerKey.visible = false; });
-    addItem('key');
-    toast('取得：黃銅鑰匙');
-  },
-});
+let drawerKeyTaken = false;
+function takeDrawerKey() {
+  if (drawerKeyTaken || !S.dialsSolved) return;
+  drawerKeyTaken = true;
+  removeInteractive(drawerKey);
+  sfx('pick');
+  tween(0.35, e => { drawerKey.position.y = -0.26 + e * 0.4; drawerKey.scale.setScalar(1 - e); }, () => { drawerKey.visible = false; });
+  addItem('key');
+  toast('取得：黃銅鑰匙');
+}
+interactive(drawerKey, { cursor: 'pointer', tap: takeDrawerKey });
 
 function solveDials() {
   S.dialsSolved = true;
   dials.forEach(d => removeInteractive(d.mesh));
-  removeInteractive(drawer);
   markLock('dials');
   setTimeout(() => {
     sfx('unlock');
     tween(1.1, e => { drawer.position.z = D / 2 + e * 0.9; });
-    toast('喀一聲，抽屜彈了出來');
+    flyTo('drawer');
+    toast('喀一聲，抽屜彈了出來——裡面有一把鑰匙');
   }, 500);
 }
 
@@ -1094,6 +1108,7 @@ controls.addEventListener('start', () => { flight = null; setViewButton(null); }
 const VIEWS = {
   front: [0.4, 3.1, 8.6], left: [-8.6, 3.2, 0.6], right: [8.6, 3.2, 0.6],
   back: [-0.4, 3.0, -8.6], top: [0.1, 9.4, 2.4], open: [2.2, 6.8, 6.6], start: [5.6, 4.7, 7.4],
+  drawer: [0.3, 6.0, 5.6],
 };
 let flight = null;
 function flyTo(name) {
