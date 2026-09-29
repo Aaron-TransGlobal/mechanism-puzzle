@@ -17,10 +17,9 @@
 
 ## 帳號與部署
 
-個人專案，一律使用個人帳號：
-
-- **Git**：個人 GitHub 身分（`~/Projects/personal/` 底下的 repo 自動套用 `~/.gitconfig-personal`）
-- **部署**：個人 Vercel（team：`aaronchuo's projects`），靜態網站＋PWA
+- **Repo**：GitHub `Aaron-TransGlobal/mechanism-puzzle`（放在個人帳號底下，不在 org 裡）
+- **Commit 身分**：個人信箱（`~/Projects/personal/` 底下的 repo 自動套用 `~/.gitconfig-personal`）；SSH key 由本 repo 的 `core.sshCommand` 指定
+- **部署**：個人 Vercel（team：`aaronchuo's projects`）已連 GitHub，推到 `main` 自動部署正式環境，其他分支自動產生預覽網址
 
 ## 下一步
 

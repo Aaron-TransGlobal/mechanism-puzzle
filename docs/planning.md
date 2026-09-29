@@ -486,7 +486,7 @@ mechanism-puzzle/
 - **收費**：網頁內購比商店內購麻煩。營利模式（D4）決定後再評估要不要上架。
 - **低階手機效能**：WebGL 在舊手機上吃力。依裝置等級調整陰影與貼圖解析度，並在目標機型上實測。
 
-**部署**：個人 Vercel 帳號（team：`aaronchuo's projects`），git 使用個人 GitHub 身分。這是個人專案，不使用公司帳號。
+**部署**：個人 Vercel 帳號（team：`aaronchuo's projects`），已連 GitHub repo `Aaron-TransGlobal/mechanism-puzzle`。推到 `main` 自動部署正式環境，其他分支自動產生預覽網址。
 
 ---
 

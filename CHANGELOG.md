@@ -2,6 +2,12 @@
 
 版號採 [Semantic Versioning](https://semver.org/lang/zh-TW/)：`vX.Y.Z`＝重大改版・新功能・修補。
 
+## [0.1.1] - 2026-09-29
+
+### Changed
+- Repo 移到 GitHub `Aaron-TransGlobal/mechanism-puzzle`（個人帳號，不在 org 裡）
+- 部署改用 Vercel 的 GitHub 整合：推到 `main` 自動部署正式環境，其他分支產生預覽網址
+
 ## [0.1.0] - 2026-09-28
 
 ### Added
